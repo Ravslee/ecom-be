@@ -43,3 +43,18 @@ exports.create = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.update = async (req, res, next) => {
+  try {
+    const { name, description, category, product_image } = req.body;
+    const p = await Product.findByIdAndUpdate(
+      req.params.id,
+      { name, description, category, product_image },
+      { new: true, runValidators: true }
+    ).lean();
+    if (!p) return res.status(404).json({ message: "Not found" });
+    res.json(p);
+  } catch (err) {
+    next(err);
+  }
+};
