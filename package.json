@@ -4,9 +4,13 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "local": "dotenv -e .env.local -- nodemon src/index.js",
+
     "dev": "dotenv -e .env.dev -- nodemon src/index.js",
     "prod": "dotenv -e .env.prod -- node src/index.js",
     "seed:dev": "dotenv -e .env.dev -- node src/utils/seed.js",
+    "seed:local": "dotenv -e .env.local -- node src/utils/seed.js",
+
     "seed:prod": "dotenv -e .env.prod -- node src/utils/seed.js"
   },
   "dependencies": {

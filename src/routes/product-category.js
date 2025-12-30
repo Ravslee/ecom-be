@@ -5,6 +5,10 @@ const { protect, requireRole } = require("../middleware/auth");
 
 router.get("/", productCategoryController.getCategories);
 router.get("/:id", productCategoryController.getCategoryById);
+router.get(
+  "/hierarchy/all",
+  productCategoryController.getCategoriesWithHierarchy
+);
 router.post(
   "/",
   protect,

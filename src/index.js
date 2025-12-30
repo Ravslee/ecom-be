@@ -18,6 +18,8 @@ app.use("/api/orders", require("./routes/orders"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/product-categories", require("./routes/product-category"));
+app.use("/api/variations", require("./routes/variation"));
+app.use("/api/variation-options", require("./routes/variationOption"));
 
 // health
 app.get("/health", (req, res) => res.json({ ok: true }));

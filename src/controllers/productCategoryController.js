@@ -1,3 +1,4 @@
+const { default: mongoose, Types } = require("mongoose");
 const ProductCategory = require("../models/ProductCategory");
 
 /**
@@ -19,15 +20,15 @@ exports.createCategory = async (req, res) => {
     }
 
     // avoid duplicate names (case-insensitive)
-    const exists = await ProductCategory.findOne({
-      category_name: { $regex: `^${category_name}$`, $options: "i" },
-    });
-    if (exists) {
-      return res.status(409).json({
-        success: false,
-        message: "Category with this name already exists",
-      });
-    }
+    // const exists = await ProductCategory.findOne({
+    //   category_name: { $regex: `^${category_name}$`, $options: "i" },
+    // });
+    // if (exists) {
+    //   return res.status(409).json({
+    //     success: false,
+    //     message: "Category with this name already exists",
+    //   });
+    // }
 
     const category = new ProductCategory({
       category_name: category_name.trim(),
@@ -82,6 +83,39 @@ exports.getCategories = async (req, res) => {
   }
 };
 
+exports.getCategoriesWithHierarchy = async (req, res) => {
+  try {
+    const categories = await ProductCategory.aggregate([
+      {
+        $graphLookup: {
+          from: "productcategories",
+          startWith: "$parent_category",
+          connectFromField: "parent_category",
+          connectToField: "_id",
+          as: "parents",
+          depthField: "level",
+        },
+      },
+      {
+        $addFields: {
+          parents: {
+            $sortArray: {
+              input: "$parents",
+              sortBy: { level: -1 },
+            },
+          },
+        },
+      },
+    ]);
+
+    return res.json({ success: true, data: categories });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
 /**
  * Get single category by id
  * GET /api/categories/:id
@@ -89,15 +123,64 @@ exports.getCategories = async (req, res) => {
 exports.getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
-    const category = await ProductCategory.findById(id).lean();
+    console.log(id);
+    // const category = await ProductCategory.findById(id).lean();
 
-    if (!category) {
+    const result = await ProductCategory.aggregate([
+      {
+        $match: { _id: new Types.ObjectId(id) },
+      },
+      {
+        $graphLookup: {
+          from: "productcategories",
+          startWith: "$parent_category",
+          connectFromField: "parent_category",
+          connectToField: "_id",
+          as: "parents",
+          depthField: "level",
+        },
+      },
+      {
+        $addFields: {
+          parents: {
+            $sortArray: {
+              input: "$parents",
+              sortBy: { level: -1 },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          breadcrumb: {
+            $concatArrays: [
+              {
+                $map: {
+                  input: "$parents",
+                  as: "p",
+                  in: {
+                    _id: "$$p._id",
+                    name: "$$p.category_name",
+                  },
+                },
+              },
+              [{ _id: "$_id", name: "$category_name" }],
+            ],
+          },
+        },
+      },
+      {
+        $project: { parents: 0 },
+      },
+    ]);
+
+    if (!result.length) {
       return res
         .status(404)
         .json({ success: false, message: "Category not found" });
     }
 
-    return res.json({ success: true, data: category });
+    return res.json({ success: true, data: result[0] });
   } catch (err) {
     // handle invalid ObjectId or other errors
     return res
@@ -121,18 +204,18 @@ exports.updateCategory = async (req, res) => {
     if (typeof parent_category !== "undefined")
       update.parent_category = parent_category;
     // if updating name, check duplicates
-    if (update.category_name) {
-      const dup = await ProductCategory.findOne({
-        _id: { $ne: id },
-        category_name: { $regex: `^${update.category_name}$`, $options: "i" },
-      });
-      if (dup) {
-        return res.status(409).json({
-          success: false,
-          message: "Another category with this name exists",
-        });
-      }
-    }
+    // if (update.category_name) {
+    //   const dup = await ProductCategory.findOne({
+    //     _id: { $ne: id },
+    //     category_name: { $regex: `^${update.category_name}$`, $options: "i" },
+    //   });
+    //   if (dup) {
+    //     return res.status(409).json({
+    //       success: false,
+    //       message: "Another category with this name exists",
+    //     });
+    //   }
+    // }
 
     const category = await ProductCategory.findByIdAndUpdate(id, update, {
       new: true,
