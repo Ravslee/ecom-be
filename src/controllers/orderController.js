@@ -5,13 +5,17 @@ const OrderLine = require("../models/OrderLine");
 const ProductItem = require("../models/ProductItem");
 const ShippingMethod = require("../models/ShippingMethod");
 const OrderStatus = require("../models/OrderStatus");
+const { getActivePromotionForCategory } = require("../utils/promotionHelper");
 
 exports.createOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const cart = await ShoppingCart.findOne({ user: userId });
     if (!cart) return res.status(400).json({ message: "Cart is empty" });
-    const items = await ShoppingCartItem.find({ cart: cart._id }).populate("product_item");
+    const items = await ShoppingCartItem.find({ cart: cart._id }).populate({
+      path: "product_item",
+      populate: { path: "product" },
+    });
     if (!items.length) return res.status(400).json({ message: "Cart has no items" });
 
     const { payment_method, shipping_address, shipping_method } = req.body;
@@ -20,16 +24,37 @@ exports.createOrder = async (req, res, next) => {
       return res.status(400).json({ message: "Shipping address is required" });
     }
 
-    // calculate total item price and verify stock
+    // calculate total item price and verify stock with promotion discounts
     let subtotal = 0;
+    const itemPurchasedPrices = [];
+
     for (const it of items) {
       if (!it.product_item) {
         return res.status(400).json({ message: "Invalid product item in cart" });
       }
       if (it.product_item.qty_in_stock < it.qty) {
-        return res.status(400).json({ message: `Insufficient stock for item SKU ${it.product_item.SKU || it.product_item._id}` });
+        return res.status(400).json({
+          message: `Insufficient stock for item SKU ${it.product_item.SKU || it.product_item._id}`,
+        });
       }
-      subtotal += it.product_item.price * it.qty;
+
+      let effectiveUnitPrice = it.product_item.price;
+      const categoryId = it.product_item.product?.category;
+      if (categoryId) {
+        const promotion = await getActivePromotionForCategory(categoryId);
+        if (promotion && promotion.discount_rate > 0) {
+          effectiveUnitPrice = Number(
+            (it.product_item.price * (1 - promotion.discount_rate / 100)).toFixed(2)
+          );
+        }
+      }
+
+      subtotal += effectiveUnitPrice * it.qty;
+      itemPurchasedPrices.push({
+        product_item: it.product_item,
+        unit_price: effectiveUnitPrice,
+        qty: it.qty,
+      });
     }
 
     let shippingCost = 0;
@@ -47,7 +72,7 @@ exports.createOrder = async (req, res, next) => {
       defaultStatus = await OrderStatus.create({ status: "Pending" });
     }
 
-    const order_total = subtotal + shippingCost;
+    const order_total = Number((subtotal + shippingCost).toFixed(2));
 
     const order = await ShopOrder.create({
       user: userId,
@@ -59,15 +84,15 @@ exports.createOrder = async (req, res, next) => {
     });
 
     // create order lines and reduce stock
-    for (const it of items) {
+    for (const entry of itemPurchasedPrices) {
       await OrderLine.create({
-        product_item: it.product_item._id,
+        product_item: entry.product_item._id,
         order: order._id,
-        qty: it.qty,
-        price: it.product_item.price,
+        qty: entry.qty,
+        price: entry.unit_price,
       });
-      it.product_item.qty_in_stock -= it.qty;
-      await it.product_item.save();
+      entry.product_item.qty_in_stock -= entry.qty;
+      await entry.product_item.save();
     }
 
     // clear cart

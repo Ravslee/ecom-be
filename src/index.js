@@ -23,6 +23,8 @@ app.use("/api/variation-options", require("./routes/variationOption"));
 app.use("/api/addresses", require("./routes/addresses"));
 app.use("/api/shipping-methods", require("./routes/shippingMethods"));
 app.use("/api/payment-methods", require("./routes/paymentMethods"));
+app.use("/api/reviews", require("./routes/reviews"));
+
 
 
 // health

@@ -5,6 +5,7 @@ const ProductItem = require("../models/ProductItem");
 
 const adminOrderController = require("../controllers/adminOrderController");
 const adminShippingController = require("../controllers/adminShippingController");
+const adminPromotionController = require("../controllers/adminPromotionController");
 
 // All admin routes require authentication + admin role
 router.use(protect, requireRole("admin"));
@@ -31,5 +32,11 @@ router.get("/shipping-methods", adminShippingController.listShippingMethods);
 router.post("/shipping-methods", adminShippingController.createShippingMethod);
 router.put("/shipping-methods/:id", adminShippingController.updateShippingMethod);
 router.delete("/shipping-methods/:id", adminShippingController.deleteShippingMethod);
+
+// Admin Promotions
+router.get("/promotions", adminPromotionController.listPromotions);
+router.post("/promotions", adminPromotionController.createPromotion);
+router.put("/promotions/:id", adminPromotionController.updatePromotion);
+router.delete("/promotions/:id", adminPromotionController.deletePromotion);
 
 module.exports = router;
