@@ -22,6 +22,8 @@ require("./ProductConfiguration");
 require("./Promotion");
 require("./PromotionCategory");
 require("./UserReview");
+require("./UserAddress");
+
 
 // Optionally export helpers:
 module.exports = {

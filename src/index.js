@@ -20,6 +20,10 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/product-categories", require("./routes/product-category"));
 app.use("/api/variations", require("./routes/variation"));
 app.use("/api/variation-options", require("./routes/variationOption"));
+app.use("/api/addresses", require("./routes/addresses"));
+app.use("/api/shipping-methods", require("./routes/shippingMethods"));
+app.use("/api/payment-methods", require("./routes/paymentMethods"));
+
 
 // health
 app.get("/health", (req, res) => res.json({ ok: true }));
