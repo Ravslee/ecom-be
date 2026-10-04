@@ -113,11 +113,31 @@ exports.listOrders = async (req, res, next) => {
   try {
     const orders = await ShopOrder.find({ user: req.user._id })
       .populate("order_status")
-      .populate("shipping_address")
+      .populate({
+        path: "shipping_address",
+        populate: { path: "country" },
+      })
       .populate("shipping_method")
       .populate("payment_method")
-      .sort("-createdAt");
-    res.json(orders);
+      .sort("-createdAt")
+      .lean();
+
+    const enriched = await Promise.all(
+      orders.map(async (order) => {
+        const lines = await OrderLine.find({ order: order._id })
+          .populate({
+            path: "product_item",
+            populate: { path: "product" },
+          })
+          .lean();
+        return {
+          ...order,
+          lines,
+        };
+      })
+    );
+
+    res.json(enriched);
   } catch (err) {
     next(err);
   }

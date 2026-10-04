@@ -60,3 +60,30 @@ exports.listTypes = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.deleteMethod = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const pm = await PaymentMethod.findOneAndDelete({ _id: id, user: req.user._id });
+    if (!pm) return res.status(404).json({ message: "Payment method not found" });
+    res.json({ success: true, message: "Payment method deleted" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.setDefault = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await PaymentMethod.updateMany({ user: req.user._id }, { is_default: false });
+    const pm = await PaymentMethod.findOneAndUpdate(
+      { _id: id, user: req.user._id },
+      { is_default: true },
+      { new: true }
+    ).populate("payment_type");
+    if (!pm) return res.status(404).json({ message: "Payment method not found" });
+    res.json(pm);
+  } catch (err) {
+    next(err);
+  }
+};

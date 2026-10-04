@@ -24,6 +24,8 @@ app.use("/api/addresses", require("./routes/addresses"));
 app.use("/api/shipping-methods", require("./routes/shippingMethods"));
 app.use("/api/payment-methods", require("./routes/paymentMethods"));
 app.use("/api/reviews", require("./routes/reviews"));
+app.use("/api/countries", require("./routes/countries"));
+app.use("/api/product-configurations", require("./routes/productConfigurations"));
 
 
 

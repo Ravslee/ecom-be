@@ -3,12 +3,13 @@ const router = express.Router();
 const productCategoryController = require("../controllers/productCategoryController");
 const { protect, requireRole } = require("../middleware/auth");
 
-router.get("/", productCategoryController.getCategories);
-router.get("/:id", productCategoryController.getCategoryById);
+router.get("/tree", productCategoryController.getCategoryTree);
 router.get(
   "/hierarchy/all",
   productCategoryController.getCategoriesWithHierarchy
 );
+router.get("/", productCategoryController.getCategories);
+router.get("/:id", productCategoryController.getCategoryById);
 router.post(
   "/",
   protect,

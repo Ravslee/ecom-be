@@ -28,13 +28,38 @@ exports.createReview = async (req, res, next) => {
   }
 };
 
+const OrderLine = require("../models/OrderLine");
+const ShopOrder = require("../models/ShopOrder");
+const ProductItem = require("../models/ProductItem");
+
 exports.getProductReviews = async (req, res, next) => {
   try {
     const { productId } = req.params;
 
-    const reviews = await UserReview.find({ ordered_product: productId })
+    const rawReviews = await UserReview.find({ ordered_product: productId })
       .populate("user", "name email_address email")
-      .sort("-createdAt");
+      .sort("-createdAt")
+      .lean();
+
+    // Check verified buyer status for each review
+    const productItems = await ProductItem.find({ product: productId }).select("_id");
+    const itemIds = productItems.map((pi) => pi._id);
+
+    const reviews = await Promise.all(
+      rawReviews.map(async (r) => {
+        if (!r.user) return { ...r, is_verified_buyer: false };
+        const userOrders = await ShopOrder.find({ user: r.user._id }).select("_id");
+        const orderIds = userOrders.map((o) => o._id);
+        const hasPurchased = await OrderLine.exists({
+          order: { $in: orderIds },
+          product_item: { $in: itemIds },
+        });
+        return {
+          ...r,
+          is_verified_buyer: Boolean(hasPurchased),
+        };
+      })
+    );
 
     let averageRating = 0;
     if (reviews.length > 0) {

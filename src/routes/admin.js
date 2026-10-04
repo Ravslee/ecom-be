@@ -6,6 +6,8 @@ const ProductItem = require("../models/ProductItem");
 const adminOrderController = require("../controllers/adminOrderController");
 const adminShippingController = require("../controllers/adminShippingController");
 const adminPromotionController = require("../controllers/adminPromotionController");
+const adminPaymentController = require("../controllers/adminPaymentController");
+const adminInventoryController = require("../controllers/adminInventoryController");
 
 // All admin routes require authentication + admin role
 router.use(protect, requireRole("admin"));
@@ -38,5 +40,15 @@ router.get("/promotions", adminPromotionController.listPromotions);
 router.post("/promotions", adminPromotionController.createPromotion);
 router.put("/promotions/:id", adminPromotionController.updatePromotion);
 router.delete("/promotions/:id", adminPromotionController.deletePromotion);
+
+// Admin Payments & Transactions
+router.get("/payments/transactions", adminPaymentController.listTransactions);
+router.get("/payments/types", adminPaymentController.listPaymentTypes);
+router.post("/payments/types", adminPaymentController.createPaymentType);
+router.delete("/payments/types/:id", adminPaymentController.deletePaymentType);
+
+// Admin Inventory
+router.get("/inventory", adminInventoryController.listInventory);
+router.patch("/inventory/:id", adminInventoryController.updateStock);
 
 module.exports = router;

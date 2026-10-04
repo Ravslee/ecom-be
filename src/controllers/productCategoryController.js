@@ -258,3 +258,30 @@ exports.deleteCategory = async (req, res) => {
       .json({ success: false, message: err.message || "Server error" });
   }
 };
+
+/**
+ * Get category hierarchy as nested tree
+ * GET /api/product-categories/tree
+ */
+exports.getCategoryTree = async (req, res) => {
+  try {
+    const all = await ProductCategory.find({}).lean();
+    const map = {};
+    all.forEach((c) => {
+      map[c._id.toString()] = { ...c, children: [] };
+    });
+    const tree = [];
+    all.forEach((c) => {
+      if (c.parent_category && map[c.parent_category.toString()]) {
+        map[c.parent_category.toString()].children.push(map[c._id.toString()]);
+      } else {
+        tree.push(map[c._id.toString()]);
+      }
+    });
+    return res.json({ success: true, data: tree, all });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
+  }
+};

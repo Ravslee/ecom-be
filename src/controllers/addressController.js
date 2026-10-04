@@ -4,7 +4,10 @@ const UserAddress = require("../models/UserAddress");
 exports.listAddresses = async (req, res, next) => {
   try {
     const userAddresses = await UserAddress.find({ user: req.user._id })
-      .populate("address")
+      .populate({
+        path: "address",
+        populate: { path: "country" },
+      })
       .sort("-is_default -createdAt");
     res.json(userAddresses);
   } catch (err) {
@@ -40,7 +43,7 @@ exports.createAddress = async (req, res, next) => {
       city,
       region,
       postal_code,
-      country,
+      country: country || null,
     });
 
     if (is_default) {
@@ -60,7 +63,10 @@ exports.createAddress = async (req, res, next) => {
       is_default: shouldBeDefault,
     });
 
-    const populated = await UserAddress.findById(userAddr._id).populate("address");
+    const populated = await UserAddress.findById(userAddr._id).populate({
+      path: "address",
+      populate: { path: "country" },
+    });
     res.status(201).json(populated);
   } catch (err) {
     next(err);
@@ -93,7 +99,7 @@ exports.updateAddress = async (req, res, next) => {
       city,
       region,
       postal_code,
-      country,
+      country: country || null,
     });
 
     if (is_default === true) {
@@ -105,7 +111,10 @@ exports.updateAddress = async (req, res, next) => {
       await userAddr.save();
     }
 
-    const updated = await UserAddress.findById(userAddr._id).populate("address");
+    const updated = await UserAddress.findById(userAddr._id).populate({
+      path: "address",
+      populate: { path: "country" },
+    });
     res.json(updated);
   } catch (err) {
     next(err);
