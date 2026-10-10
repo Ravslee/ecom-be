@@ -5,7 +5,7 @@ const ProductConfiguration = require("../models/ProductConfiguration");
 
 exports.list = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, q, category } = req.query;
+    const { page = 1, limit = 12, q, category } = req.query;
     const filter = {};
     if (q) filter.name = new RegExp(q, "i");
 
@@ -15,8 +15,10 @@ exports.list = async (req, res, next) => {
       filter.category = { $in: catIds };
     }
 
+    const total = await Product.countDocuments(filter);
+
     const products = await Product.find(filter)
-      .skip((page - 1) * limit)
+      .skip((page - 1) * Number(limit))
       .limit(Number(limit))
       .populate("category")
       .lean();
@@ -37,11 +39,14 @@ exports.list = async (req, res, next) => {
       })
     );
 
+    res.setHeader("X-Total-Count", total);
+    res.setHeader("Access-Control-Expose-Headers", "X-Total-Count");
     res.json(enriched);
   } catch (err) {
     next(err);
   }
 };
+
 
 exports.get = async (req, res, next) => {
   try {
